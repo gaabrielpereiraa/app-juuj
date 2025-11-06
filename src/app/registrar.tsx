@@ -8,6 +8,7 @@ import TaskCard from '../components/TaskCard';
 import TaskModal from '../components/TaskModal';
 import { useTasks } from '../hooks/task';
 import { Task } from '../lib/supabase';
+import { formatPointsDescription } from '../utils/taskUtils';
 
 export default function Registrar() {
   const router = useRouter();
@@ -76,7 +77,7 @@ export default function Registrar() {
             <TaskCard
               key={task.id}
               title={task.title}
-              points={`${task.points_per_unit} pontos por ${task.unit_label}`}
+              points={formatPointsDescription(task.points_per_unit, task.unit_label)}
               onAdd={() => handleAddTask(task)}
               icon={task.icon as keyof typeof MaterialCommunityIcons.glyphMap}
             />
