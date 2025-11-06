@@ -1,11 +1,11 @@
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { ActivityIndicator, ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import SuccessModal from '../components/SucessModal';
 import TaskCard from '../components/TaskCard';
 import TaskModal from '../components/TaskModal';
-import SuccessModal from '../components/SucessModal';
 import { useTasks } from '../hooks/task';
 import { Task } from '../lib/supabase';
 
@@ -78,6 +78,7 @@ export default function Registrar() {
               title={task.title}
               points={`${task.points_per_unit} pontos por ${task.unit_label}`}
               onAdd={() => handleAddTask(task)}
+              icon={task.icon as keyof typeof MaterialCommunityIcons.glyphMap}
             />
           ))}
         </ScrollView>
