@@ -6,6 +6,7 @@ import { Stack } from 'expo-router';
 import 'react-native-reanimated';
 import "../../global.css";
 import { PointsProvider } from "../context/pointsContext";
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 export default function RootLayout() {
 
@@ -37,10 +38,12 @@ export default function RootLayout() {
   });
 
   return (
-    <QueryClientProvider client={queryClient}>
-      <PointsProvider>
-        <Stack screenOptions={{ headerShown: false, animation: "none" }} />
-      </PointsProvider>
-    </QueryClientProvider>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <QueryClientProvider client={queryClient}>
+        <PointsProvider>
+          <Stack screenOptions={{ headerShown: false, animation: "none" }} />
+        </PointsProvider>
+      </QueryClientProvider>
+    </GestureHandlerRootView>
   );
 }
