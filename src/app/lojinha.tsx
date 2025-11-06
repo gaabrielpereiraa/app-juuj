@@ -104,7 +104,7 @@ export default function Lojinha() {
           contentContainerClassName="p-6"
           showsVerticalScrollIndicator={false}
         >
-          <View className="flex flex-row flex-wrap gap-[1%]">
+          <View className="flex flex-row flex-wrap justify-between">
             {rewards.map((reward: Reward) => (
               <View key={reward.id} className="w-[48%]">
                 <RewardCard
