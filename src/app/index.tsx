@@ -1,20 +1,19 @@
 import { ActivityIndicator, Image, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import CardHome from '../components/CardHome';
-import { useUserSettings } from '../hooks/user';
 import { usePoints } from '../context/pointsContext';
 
 export default function HomeScreen() {
-    const { 
-      currentPoints, 
-      totalPointsEarned,
-      userName,
-      avatarUrl,
-      addPoints,
-      subtractPoints,
-      setPoints,
-      refreshPoints,
-      loading 
+  const {
+    currentPoints,
+    totalPointsEarned,
+    userName,
+    avatarUrl,
+    addPoints,
+    subtractPoints,
+    setPoints,
+    refreshPoints,
+    loading
   } = usePoints();
 
   const cardValues = [
@@ -22,6 +21,7 @@ export default function HomeScreen() {
     { titulo: 'Meu Histórico', icone: 'time-outline', redirectTo: '/historico' },
     { titulo: 'Lojinha', icone: 'storefront-outline', redirectTo: '/lojinha' },
     { titulo: 'Histórico de Compras', icone: 'cart-outline', redirectTo: '/historico-compras' },
+    { titulo: 'Calendário de Hábitos', icone: 'calendar-outline', redirectTo: '/calendario' },
   ];
 
   if (loading) {
@@ -33,13 +33,13 @@ export default function HomeScreen() {
   }
   return (
     <SafeAreaView className="flex-1 bg-background-light">
-      <ScrollView 
+      <ScrollView
         className="flex-1"
         contentContainerClassName="items-center justify-start p-4 pt-8"
       >
         <View className="flex flex-col items-stretch justify-start w-full max-w-md mx-auto space-y-6">
           <View className="flex flex-row items-center gap-4 px-4">
-            <Image 
+            <Image
               source={
                 avatarUrl
                   ? { uri: encodeURI(avatarUrl) }

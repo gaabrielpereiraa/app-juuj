@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { formatDateLabel, formatLocalDateKey, formatLocalTime } from '../lib/dateUtils';
 import { supabase, Task, TaskCompletion } from '../lib/supabase';
 
 const TASKS_QUERY_KEY = ['tasks'];
@@ -86,30 +87,14 @@ function groupCompletionsByDate(completions: any[]): GroupedCompletion[] {
   const grouped = new Map<string, GroupedCompletion>();
 
   completions.forEach((completion: any) => {
-    const date = new Date(completion.completed_at).toISOString().split('T')[0];
-    const time = new Date(completion.completed_at).toLocaleTimeString('pt-BR', {
-      hour: '2-digit',
-      minute: '2-digit',
-    });
+    const completedAt = new Date(completion.completed_at);
+    const date = formatLocalDateKey(completedAt);
+    const time = formatLocalTime(completion.completed_at);
 
     if (!grouped.has(date)) {
-      const dateObj = new Date(date);
-      const today = new Date().toISOString().split('T')[0];
-      const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0];
-
-      let dateLabel = '';
-      if (date === today) dateLabel = 'Hoje';
-      else if (date === yesterday) dateLabel = 'Ontem';
-      else {
-        dateLabel = dateObj.toLocaleDateString('pt-BR', {
-          day: '2-digit',
-          month: 'long',
-        });
-      }
-
       grouped.set(date, {
         date,
-        date_label: dateLabel,
+        date_label: formatDateLabel(date),
         activities: [],
       });
     }
@@ -124,7 +109,7 @@ function groupCompletionsByDate(completions: any[]): GroupedCompletion[] {
     });
   });
 
-  return Array.from(grouped.values()).sort((a, b) => 
+  return Array.from(grouped.values()).sort((a, b) =>
     b.date.localeCompare(a.date)
   );
 }
