@@ -2,10 +2,10 @@ import { ReactNode } from 'react';
 import { Dimensions, Modal, Pressable, View } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
-    runOnJS,
-    useAnimatedStyle,
-    useSharedValue,
-    withSpring,
+  runOnJS,
+  useAnimatedStyle,
+  useSharedValue,
+  withSpring,
 } from 'react-native-reanimated';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
@@ -57,14 +57,15 @@ export default function DraggableModal({ visible, onClose, children }: Draggable
       onRequestClose={onClose}
       statusBarTranslucent
     >
-      <Pressable 
-        className="flex-1 bg-black/50 justify-end"
+      <Pressable
+        className="flex-1 justify-end"
+        style={{ backgroundColor: 'rgba(0, 0, 0, 0.5)' }}
         onPress={onClose}
       >
         <GestureDetector gesture={gesture}>
           <Animated.View
-            style={[animatedStyle]}
-            className="bg-card-light rounded-t-3xl shadow-2xl pb-6 max-h-[90%]"
+            style={[animatedStyle, { backgroundColor: '#FFFBF5' }]}
+            className="rounded-t-3xl shadow-2xl pb-6 max-h-[90%]"
             onStartShouldSetResponder={() => true}
           >
             <Pressable onPress={(e) => e.stopPropagation()}>
