@@ -182,7 +182,7 @@ export function useHabitCalendar(currentDate: Date) {
     const month = currentDate.getMonth();
 
     const tasksQuery = useQuery({
-        queryKey: ['tasks'],
+        queryKey: ['calendarTasks'],
         queryFn: fetchActiveTasks,
     });
 
