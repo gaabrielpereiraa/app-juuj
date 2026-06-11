@@ -1,6 +1,7 @@
 import { ActivityIndicator, Image, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import CardHome from '../components/CardHome';
+import OnThisDayCard from '../components/OnThisDayCard';
 import { usePoints } from '../context/pointsContext';
 
 export default function HomeScreen() {
@@ -22,6 +23,7 @@ export default function HomeScreen() {
     { titulo: 'Lojinha', icone: 'storefront-outline', redirectTo: '/lojinha' },
     { titulo: 'Histórico de Compras', icone: 'cart-outline', redirectTo: '/historico-compras' },
     { titulo: 'Calendário de Hábitos', icone: 'calendar-outline', redirectTo: '/calendario' },
+    { titulo: 'Joguinhos', icone: 'game-controller-outline', redirectTo: '/joguinhos' },
   ];
 
   if (loading) {
@@ -57,6 +59,8 @@ export default function HomeScreen() {
               </Text>
             </View>
           </View>
+
+          <OnThisDayCard />
 
           <View className="p-4 w-full">
             <View className="flex flex-col items-center justify-center rounded-3xl bg-card-light shadow-lg p-8">

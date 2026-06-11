@@ -58,3 +58,31 @@ export interface TaskCompletion {
     completed_at: string;
     created_at: string;
 }
+
+export interface MemoryPhoto {
+    id: string;
+    memory_id: string;
+    storage_path: string;
+    sort_order: number;
+}
+
+export interface Memory {
+    id: string;
+    event_date: string;
+    title: string;
+    location: string | null;
+    category: string | null;
+    memory_photos?: MemoryPhoto[];
+}
+
+export type GameKey = 'photo_quiz' | 'timeline' | 'timeline_infinite';
+
+export interface GameSession {
+    id: string;
+    game_key: GameKey;
+    played_on: string;
+    correct_count: number;
+    total_count: number;
+    points_awarded: number;
+    created_at: string;
+}

@@ -1,0 +1,296 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>JuuJ Tagger</title>
+<style>
+  :root {
+    --bg: #fff8dc; --card: #fffcf4; --primary: #f47b25;
+    --text: #5d4037; --muted: #9e6b47; --peach: #ffac81; --green: #50b87a;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; font-family: system-ui, -apple-system, sans-serif;
+    background: var(--bg); color: var(--text);
+    display: grid; grid-template-columns: 1fr 380px; height: 100vh;
+  }
+  .left { display: flex; flex-direction: column; padding: 16px; min-width: 0; }
+  .right { background: var(--card); border-left: 1px solid #0001; padding: 16px;
+    display: flex; flex-direction: column; gap: 10px; overflow: hidden; }
+  .bar { height: 8px; background: #0001; border-radius: 99px; overflow: hidden; margin-bottom: 8px; }
+  .bar > i { display: block; height: 100%; background: var(--primary); width: 0; transition: width .2s; }
+  .stats { font-size: 13px; color: var(--muted); margin-bottom: 6px; }
+  .sent { font-size: 12px; color: var(--muted); margin-bottom: 10px; min-height: 18px; }
+  .sent b { color: var(--primary); }
+  .photo-wrap { flex: 1; display: flex; align-items: center; justify-content: center;
+    background: var(--card); border-radius: 16px; box-shadow: 0 4px 10px #0001; overflow: hidden; }
+  .photo-wrap img { max-width: 100%; max-height: 100%; object-fit: contain; border-radius: 8px; }
+  .empty { text-align: center; color: var(--muted); font-size: 18px; }
+  .actions { display: flex; gap: 10px; margin-top: 12px; }
+  .btn { flex: 1; padding: 12px; border-radius: 12px; border: none; cursor: pointer;
+    font-size: 14px; font-weight: 700; color: var(--text); background: var(--peach); }
+  .btn:hover { filter: brightness(0.97); }
+  .btn.ghost { background: #0001; color: var(--muted); }
+  .btn:disabled { opacity: 0.5; cursor: default; }
+  input.search {
+    width: 100%; padding: 12px 14px; border-radius: 12px; border: 2px solid #0002;
+    font-size: 15px; outline: none; background: #fff; color: var(--text);
+  }
+  input.search:focus { border-color: var(--primary); }
+  .list { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; padding-right: 4px; }
+  .item { display: flex; align-items: center; gap: 8px; padding: 9px 11px;
+    border-radius: 10px; background: #fff; cursor: pointer; border: 2px solid transparent; }
+  .item.sel { border-color: var(--primary); background: #f47b2510; }
+  .item.near .d { color: var(--primary); font-weight: 700; }
+  .item .num { width: 18px; font-size: 11px; color: var(--muted); }
+  .item .d { font-size: 12px; color: var(--muted); min-width: 42px; }
+  .item .t { flex: 1; font-size: 14px; font-weight: 600; }
+  .item .c { font-size: 10px; color: var(--primary); text-transform: uppercase; }
+  .help { font-size: 11px; color: var(--muted); line-height: 1.6; }
+  kbd { background: #0001; border-radius: 4px; padding: 1px 5px; font-family: ui-monospace, monospace; }
+  .toast { position: fixed; bottom: 16px; left: 16px; color: #fff;
+    padding: 10px 16px; border-radius: 12px; font-weight: 600; opacity: 0; transition: opacity .15s;
+    box-shadow: 0 6px 16px #0003; display: flex; align-items: center; gap: 8px;
+    background: var(--green); }
+  .toast.show { opacity: 1; }
+  .toast.load { background: var(--primary); }
+  .toast.err { background: #c0392b; }
+  .spin { width: 14px; height: 14px; border: 2px solid #fff6; border-top-color: #fff;
+    border-radius: 50%; animation: spin .7s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+</style>
+</head>
+<body>
+  <div class="left">
+    <div class="bar"><i id="prog"></i></div>
+    <div class="stats" id="stats">carregando…</div>
+    <div class="sent" id="sent"></div>
+    <div class="photo-wrap" id="photoWrap"><div class="empty">carregando…</div></div>
+    <div class="actions">
+      <button class="btn" id="skipBtn" onclick="skip()">⏭ Pular foto (S)</button>
+      <button class="btn ghost" id="undoBtn" onclick="undo()">↶ Desfazer (U)</button>
+    </div>
+  </div>
+  <div class="right">
+    <input class="search" id="search" placeholder="buscar data/evento…  (/ foca)" autocomplete="off" />
+    <div class="list" id="list"></div>
+    <div class="help">
+      <kbd>Enter</kbd> confirma destaque · <kbd>1–9</kbd> escolhe · <kbd>↑↓</kbd> move ·
+      <kbd>S</kbd> pula · <kbd>U</kbd> desfaz · <kbd>/</kbd> busca
+    </div>
+  </div>
+  <div class="toast" id="toast"></div>
+
+<script>
+let memories = [];      // todas, ordenadas por data (asc)
+let filtered = [];      // após busca
+let sel = 0;            // índice selecionado em filtered
+let queue = [];         // pendentes [{file, date}] em ordem (fila local p/ avanço otimista)
+let idx = 0;            // ponteiro na fila
+let counts = { done: 0, skipped: 0, total: 0 };
+let lastAction = null;  // {file, date, type:'done'|'skipped'} para desfazer
+let inflight = 0;       // controla qual toast prevalece
+
+const $ = (id) => document.getElementById(id);
+const fmtDate = (iso) => { const [y, m, d] = iso.split('-'); return `${d}/${m}`; };
+const fmtFull = (iso) => { const [y, m, d] = iso.split('-'); return `${d}/${m}/${y}`; };
+const label = (m) => `${fmtDate(m.event_date)} · ${m.title}`;
+const currentItem = () => queue[idx] || null;
+
+function toast(msg, kind = 'success') {
+  const t = $('toast');
+  const spin = kind === 'load' ? '<span class="spin"></span>' : '';
+  t.innerHTML = spin + `<span>${msg}</span>`;
+  t.className = 'toast show ' + (kind === 'load' ? 'load' : kind === 'error' ? 'err' : '');
+  if (kind !== 'load') setTimeout(() => (t.className = 'toast'), 1600);
+}
+
+// índice da memória com data mais próxima de uma data de envio (iso 'YYYY-MM-DD')
+function closestIndex(dateIso) {
+  if (!dateIso) return 0;
+  const target = Date.parse(dateIso);
+  let best = 0, bestDiff = Infinity;
+  memories.forEach((m, i) => {
+    const diff = Math.abs(Date.parse(m.event_date) - target);
+    if (diff < bestDiff) { bestDiff = diff; best = i; }
+  });
+  return best;
+}
+
+function applyFilter() {
+  const q = $('search').value.trim().toLowerCase();
+  filtered = !q ? memories : memories.filter((m) =>
+    (m.title + ' ' + m.event_date).toLowerCase().includes(q));
+  // busca vazia: destaca a memória mais próxima da data da foto; senão o topo
+  const cur = currentItem();
+  sel = q ? 0 : closestIndex(cur?.date);
+  if (sel >= filtered.length) sel = 0;
+  renderList();
+}
+
+function renderList() {
+  const el = $('list');
+  el.innerHTML = '';
+  const cur = currentItem();
+  const nearIso = cur?.date ? memories[closestIndex(cur.date)]?.event_date : null;
+  filtered.forEach((m, i) => {
+    const div = document.createElement('div');
+    div.className = 'item' + (i === sel ? ' sel' : '') +
+      (m.event_date === nearIso ? ' near' : '');
+    div.innerHTML =
+      `<span class="num">${i < 9 ? i + 1 : ''}</span>` +
+      `<span class="d">${fmtDate(m.event_date)}</span>` +
+      `<span class="t">${m.title}</span>` +
+      `<span class="c">${m.category || ''}</span>`;
+    div.onclick = () => assign(m.id, label(m));
+    el.appendChild(div);
+  });
+  // centraliza o item selecionado
+  const selEl = el.children[sel];
+  if (selEl) selEl.scrollIntoView({ block: 'center' });
+}
+
+function renderPhoto() {
+  const cur = currentItem();
+  const wrap = $('photoWrap');
+  const sent = $('sent');
+  if (!cur) {
+    wrap.innerHTML = '<div class="empty">🎉 Tudo tagueado!</div>';
+    sent.innerHTML = '';
+  } else {
+    wrap.innerHTML = `<img src="/api/photo/${encodeURIComponent(cur.file)}" alt="">`;
+    sent.innerHTML = cur.date
+      ? `📅 enviada no WhatsApp em <b>${fmtFull(cur.date)}</b> (≈ pista, não é a data do evento)`
+      : '';
+  }
+  updateStats();
+  updateButtons();
+}
+
+function updateButtons() {
+  $('skipBtn').disabled = !currentItem();
+  $('undoBtn').disabled = !lastAction;
+}
+
+function updateStats() {
+  const processed = counts.done + counts.skipped;
+  const total = counts.total;
+  $('prog').style.width = total ? `${(processed / total) * 100}%` : '0';
+  $('stats').textContent =
+    `Foto ${processed + (currentItem() ? 1 : 0)} de ${total} · ` +
+    `${counts.done} feitas · ${counts.skipped} puladas · ${total - processed} restantes`;
+}
+
+// mostra a próxima foto e recalcula o destaque/centralização
+function advanceUI() {
+  $('search').value = '';
+  renderPhoto();
+  applyFilter();
+}
+
+async function assign(memoryId, lbl) {
+  const item = currentItem();
+  if (!item) return;
+  // --- otimista: remove da fila e avança JÁ ---
+  queue.splice(idx, 1);
+  counts.done++;
+  lastAction = { ...item, type: 'done' };
+  advanceUI();
+
+  const myId = ++inflight;
+  toast(`enviando ${lbl}…`, 'load');
+  try {
+    const r = await fetch('/api/assign', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ file: item.file, memoryId }),
+    });
+    const data = await r.json();
+    if (!r.ok) throw new Error(data.error || 'erro');
+    if (myId === inflight) toast(`✓ ${lbl} (${data.kb}KB)`, 'success');
+  } catch (e) {
+    // reverte: devolve a foto pro lugar atual da fila
+    queue.splice(idx, 0, item);
+    counts.done--;
+    if (lastAction && lastAction.file === item.file) lastAction = null;
+    advanceUI();
+    toast(`falhou: ${e.message} — refaça`, 'error');
+  }
+}
+
+async function skip() {
+  const item = currentItem();
+  if (!item) return;
+  queue.splice(idx, 1);
+  counts.skipped++;
+  lastAction = { ...item, type: 'skipped' };
+  advanceUI();
+  fetch('/api/skip', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ file: item.file }),
+  }).catch(() => {});
+}
+
+async function undo() {
+  if (!lastAction) return toast('nada pra desfazer', 'error');
+  const act = lastAction;
+  lastAction = null;
+  // devolve a foto como atual
+  queue.splice(idx, 0, { file: act.file, date: act.date });
+  counts[act.type]--;
+  advanceUI();
+  toast('enviando desfazer…', 'load');
+  try {
+    const r = await fetch('/api/undo', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ file: act.file }),
+    });
+    if (!r.ok) throw new Error((await r.json()).error || 'erro');
+    toast('↶ desfeito', 'success');
+  } catch (e) {
+    toast(`falhou desfazer: ${e.message}`, 'error');
+  }
+}
+
+function moveSel(delta) {
+  if (!filtered.length) return;
+  sel = Math.max(0, Math.min(sel + delta, filtered.length - 1));
+  renderList();
+}
+
+document.addEventListener('keydown', (e) => {
+  const inSearch = document.activeElement === $('search');
+  if (e.key === '/') { e.preventDefault(); $('search').focus(); return; }
+  if (e.key === 'Enter') {
+    e.preventDefault();
+    if (filtered[sel]) assign(filtered[sel].id, label(filtered[sel]));
+    return;
+  }
+  if (e.key === 'ArrowDown') { e.preventDefault(); return moveSel(1); }
+  if (e.key === 'ArrowUp') { e.preventDefault(); return moveSel(-1); }
+  if (!inSearch) {
+    if (e.key >= '1' && e.key <= '9') {
+      const m = filtered[+e.key - 1];
+      if (m) assign(m.id, label(m));
+      return;
+    }
+    if (e.key.toLowerCase() === 's') return skip();
+    if (e.key.toLowerCase() === 'u') return undo();
+  }
+});
+
+$('search').addEventListener('input', applyFilter);
+
+(async function init() {
+  memories = await (await fetch('/api/memories')).json();
+  const data = await (await fetch('/api/init')).json();
+  counts = { done: data.done, skipped: data.skipped, total: data.total };
+  queue = data.pending;
+  idx = 0;
+  renderPhoto();
+  applyFilter();
+  $('search').focus();
+})();
+</script>
+</body>
+</html>

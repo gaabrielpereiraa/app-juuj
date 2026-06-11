@@ -89,6 +89,14 @@ export function formatLocalTime(isoString: string): string {
 }
 
 /**
+ * Formata uma data YYYY-MM-DD como DD/MM (ex: '2025-02-12' -> '12/02')
+ */
+export function formatDayMonth(dateKey: string): string {
+    const [, month, day] = dateKey.split('-');
+    return `${day}/${month}`;
+}
+
+/**
  * Formata uma data para label amigável (Hoje, Ontem, ou data formatada)
  */
 export function formatDateLabel(dateKey: string): string {
