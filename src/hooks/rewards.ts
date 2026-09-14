@@ -128,7 +128,51 @@ function groupRedemptionsByDate(redemptions: any[]): GroupedRedemption[] {
 async function grantReward(redemptionId: string): Promise<RewardRedemption> {
   const { data, error } = await supabase
     .from('reward_redemptions')
-    .update({ status: 'CONCEDIDA' })
+    .update({ status: 'CONCEDIDA', granted_at: new Date().toISOString() })
+    .eq('id', redemptionId)
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data;
+}
+
+// --- Admin: recompensas incluindo as indisponíveis + escrita ---
+
+async function fetchAllRewards(): Promise<Reward[]> {
+  const { data, error } = await supabase
+    .from('rewards')
+    .select('*')
+    .order('points_cost', { ascending: true });
+
+  if (error) throw error;
+  return data || [];
+}
+
+export type RewardInput = Partial<Reward> & { title: string };
+
+async function saveReward(reward: RewardInput): Promise<Reward> {
+  const payload = { ...reward, updated_at: new Date().toISOString() };
+
+  const query = reward.id
+    ? supabase.from('rewards').update(payload).eq('id', reward.id)
+    : supabase.from('rewards').insert(payload);
+
+  const { data, error } = await query.select().single();
+  if (error) throw error;
+  return data;
+}
+
+async function deleteReward(id: string): Promise<void> {
+  const { error } = await supabase.from('rewards').delete().eq('id', id);
+  if (error) throw error;
+}
+
+// Reverter uma concessão
+async function revokeReward(redemptionId: string): Promise<RewardRedemption> {
+  const { data, error } = await supabase
+    .from('reward_redemptions')
+    .update({ status: 'PENDENTE', granted_at: null })
     .eq('id', redemptionId)
     .select()
     .single();
@@ -178,5 +222,41 @@ export function useGrantReward() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: REDEMPTIONS_QUERY_KEY });
     },
+  });
+}
+
+export function useRevokeReward() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: revokeReward,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: REDEMPTIONS_QUERY_KEY });
+    },
+  });
+}
+
+export function useAllRewards() {
+  return useQuery({
+    queryKey: [...REWARDS_QUERY_KEY, 'all'],
+    queryFn: fetchAllRewards,
+  });
+}
+
+export function useSaveReward() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: saveReward,
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: REWARDS_QUERY_KEY }),
+  });
+}
+
+export function useDeleteReward() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: deleteReward,
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: REWARDS_QUERY_KEY }),
   });
 }

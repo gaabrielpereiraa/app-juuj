@@ -1,10 +1,13 @@
-import { ActivityIndicator, Image, ScrollView, Text, View } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
+import { ActivityIndicator, Image, Pressable, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import CardHome from '../components/CardHome';
 import OnThisDayCard from '../components/OnThisDayCard';
 import { usePoints } from '../context/pointsContext';
 
 export default function HomeScreen() {
+  const router = useRouter();
   const {
     currentPoints,
     totalPointsEarned,
@@ -50,7 +53,7 @@ export default function HomeScreen() {
               className="h-16 w-16 rounded-full"
               accessibilityLabel="Foto da usuária"
             />
-            <View>
+            <View className="flex-1">
               <Text className="text-base text-text-light/80">
                 HELLOO
               </Text>
@@ -58,6 +61,14 @@ export default function HomeScreen() {
                 {userName || 'JuuJ'}
               </Text>
             </View>
+
+            <Pressable
+              onPress={() => router.push('/admin')}
+              hitSlop={12}
+              accessibilityLabel="Admin"
+            >
+              <Ionicons name="settings-outline" size={20} color="rgba(93,64,55,0.3)" />
+            </Pressable>
           </View>
 
           <OnThisDayCard />

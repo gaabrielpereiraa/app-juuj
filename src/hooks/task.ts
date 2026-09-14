@@ -114,10 +114,66 @@ function groupCompletionsByDate(completions: any[]): GroupedCompletion[] {
   );
 }
 
+// --- Admin: tarefas incluindo as desativadas + escrita ---
+
+async function fetchAllTasks(): Promise<Task[]> {
+  const { data, error } = await supabase
+    .from('tasks')
+    .select('*')
+    .order('title');
+
+  if (error) throw error;
+  return data || [];
+}
+
+export type TaskInput = Partial<Task> & { title: string };
+
+async function saveTask(task: TaskInput): Promise<Task> {
+  const payload = { ...task, updated_at: new Date().toISOString() };
+
+  const query = task.id
+    ? supabase.from('tasks').update(payload).eq('id', task.id)
+    : supabase.from('tasks').insert(payload);
+
+  const { data, error } = await query.select().single();
+  if (error) throw error;
+  return data;
+}
+
+async function deleteTask(id: string): Promise<void> {
+  const { error } = await supabase.from('tasks').delete().eq('id', id);
+  if (error) throw error;
+}
+
 export function useTasks() {
   return useQuery({
     queryKey: TASKS_QUERY_KEY,
     queryFn: fetchTasks,
+  });
+}
+
+export function useAllTasks() {
+  return useQuery({
+    queryKey: [...TASKS_QUERY_KEY, 'all'],
+    queryFn: fetchAllTasks,
+  });
+}
+
+export function useSaveTask() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: saveTask,
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: TASKS_QUERY_KEY }),
+  });
+}
+
+export function useDeleteTask() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: deleteTask,
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: TASKS_QUERY_KEY }),
   });
 }
 
