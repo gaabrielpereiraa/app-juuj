@@ -40,7 +40,7 @@ Deno.serve(async (req) => {
 
   // ordenado por id → mesmo texto entre chamadas → cache do prompt funciona
   const { data: items, error } = await db.from('wardrobe_items')
-    .select('id, category, name, colors, formality, description')
+    .select('id, category, name, colors, material, pattern, formality, description')
     .eq('status', 'ready')
     .order('id');
   if (error) return json({ error: error.message }, 500);
@@ -49,7 +49,7 @@ Deno.serve(async (req) => {
   }
 
   const catalog = items
-    .map((i) => [i.id, i.category, i.name, (i.colors ?? []).join('/'), i.formality, i.description].join(' | '))
+    .map((i) => [i.id, i.category, i.name, (i.colors ?? []).join('/'), i.material, i.pattern, i.formality, i.description].join(' | '))
     .join('\n');
 
   const stream = anthropic.beta.messages.stream({
@@ -60,7 +60,7 @@ Deno.serve(async (req) => {
     output_config: { effort: 'low' },
     system: [
       { type: 'text', text: PERSONA },
-      { type: 'text', text: `CATÁLOGO (id | categoria | nome | cores | formalidade | descrição):\n${catalog}`, cache_control: { type: 'ephemeral' } },
+      { type: 'text', text: `CATÁLOGO (id | categoria | nome | cores | material | estampa | formalidade | descrição):\n${catalog}`, cache_control: { type: 'ephemeral' } },
     ],
     messages,
   });

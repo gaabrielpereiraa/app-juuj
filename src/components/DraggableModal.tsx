@@ -1,5 +1,5 @@
 import { ReactNode } from 'react';
-import { Dimensions, Modal, Pressable, View } from 'react-native';
+import { Dimensions, KeyboardAvoidingView, Modal, Platform, Pressable, View } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
   runOnJS,
@@ -57,28 +57,31 @@ export default function DraggableModal({ visible, onClose, children }: Draggable
       onRequestClose={onClose}
       statusBarTranslucent
     >
-      <Pressable
-        className="flex-1 justify-end"
-        style={{ backgroundColor: 'rgba(0, 0, 0, 0.5)' }}
-        onPress={onClose}
-      >
-        <GestureDetector gesture={gesture}>
-          <Animated.View
-            style={[animatedStyle, { backgroundColor: '#FFFBF5' }]}
-            className="rounded-t-3xl shadow-2xl pb-6 max-h-[90%]"
-            onStartShouldSetResponder={() => true}
-          >
-            <Pressable onPress={(e) => e.stopPropagation()}>
-              {/* Handle arrastável */}
-              <View className="flex h-8 w-full items-center justify-center pt-3 pb-2">
-                <View className="h-1.5 w-12 rounded-full bg-text-light/30" />
-              </View>
+      {/* sobe a gaveta junto com o teclado (Modal não herda o ajuste da tela) */}
+      <KeyboardAvoidingView className="flex-1" behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+        <Pressable
+          className="flex-1 justify-end"
+          style={{ backgroundColor: 'rgba(0, 0, 0, 0.5)' }}
+          onPress={onClose}
+        >
+          <GestureDetector gesture={gesture}>
+            <Animated.View
+              style={[animatedStyle, { backgroundColor: '#FFFBF5' }]}
+              className="rounded-t-3xl shadow-2xl pb-6 max-h-[90%]"
+              onStartShouldSetResponder={() => true}
+            >
+              <Pressable onPress={(e) => e.stopPropagation()}>
+                {/* Handle arrastável */}
+                <View className="flex h-8 w-full items-center justify-center pt-3 pb-2">
+                  <View className="h-1.5 w-12 rounded-full bg-text-light/30" />
+                </View>
 
-              {children}
-            </Pressable>
-          </Animated.View>
-        </GestureDetector>
-      </Pressable>
+                {children}
+              </Pressable>
+            </Animated.View>
+          </GestureDetector>
+        </Pressable>
+      </KeyboardAvoidingView>
     </Modal>
   );
 }

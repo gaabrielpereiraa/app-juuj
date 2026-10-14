@@ -47,7 +47,7 @@ export default function LookinhosScreen() {
       </TouchableOpacity>
 
       {counts.length > 0 && (
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerClassName="gap-2">
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} className="grow-0" contentContainerClassName="items-center gap-2">
           {[{ cat: null, n: items.length }, ...counts].map(({ cat, n }) => {
             const active = category === cat;
             return (
@@ -116,7 +116,7 @@ export default function LookinhosScreen() {
       )}
 
       <AddItemSheet visible={adding} onClose={() => setAdding(false)} />
-      <ItemDetailModal item={selected} onClose={() => setSelectedId(null)} />
+      <ItemDetailModal key={selected?.id} item={selected} onClose={() => setSelectedId(null)} />
     </SafeAreaView>
   );
 }

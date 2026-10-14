@@ -182,7 +182,7 @@ export default function EstilistaScreen() {
         )}
       </KeyboardAvoidingView>
 
-      <ItemDetailModal item={selected} onClose={() => setSelected(null)} />
+      <ItemDetailModal key={selected?.id} item={selected} onClose={() => setSelected(null)} />
     </SafeAreaView>
   );
 }

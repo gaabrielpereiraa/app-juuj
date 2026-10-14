@@ -45,7 +45,13 @@
           "photosPermission": "O app usa suas fotos para cadastrar roupas no armário.",
           "cameraPermission": "O app usa a câmera para fotografar suas roupas."
         }
-      ]
+      ],
+      "expo-font",
+      "expo-image",
+      "expo-router",
+      "expo-web-browser",
+      "expo-splash-screen",
+      "expo-status-bar"
     ]
   }
 }
