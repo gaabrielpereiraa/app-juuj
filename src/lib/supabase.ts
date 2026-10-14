@@ -110,3 +110,13 @@ export interface WardrobeItem {
     error: string | null;
     created_at: string;
 }
+
+export interface SavedLook {
+    id: string;
+    title: string;
+    item_ids: string[];
+    why: string | null;
+    occasion: string | null;
+    tryon_path: string | null;
+    created_at: string;
+}

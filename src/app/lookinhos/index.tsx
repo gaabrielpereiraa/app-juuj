@@ -4,16 +4,18 @@ import { useMemo, useState } from 'react';
 import { ActivityIndicator, FlatList, ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import GameHeader from '../../components/games/GameHeader';
+import GameHubCard from '../../components/games/GameHubCard';
 import AddItemSheet from '../../components/lookinhos/AddItemSheet';
 import ItemDetailModal from '../../components/lookinhos/ItemDetailModal';
 import ItemTile from '../../components/lookinhos/ItemTile';
-import { useWardrobeItems } from '../../hooks/wardrobe';
+import { useSavedLooks, useWardrobeItems } from '../../hooks/wardrobe';
 import { CATEGORY_LABEL } from '../../lib/lookinhos';
 import { WARDROBE_CATEGORIES, WardrobeCategory } from '../../lib/supabase';
 
 export default function LookinhosScreen() {
   const router = useRouter();
   const { data: items = [], isLoading } = useWardrobeItems();
+  const { data: looks = [] } = useSavedLooks();
   const [category, setCategory] = useState<WardrobeCategory | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [adding, setAdding] = useState(false);
@@ -31,20 +33,18 @@ export default function LookinhosScreen() {
 
   const header = (
     <View className="gap-4 pb-2">
-      <TouchableOpacity
+      <GameHubCard
+        title="O que eu visto hoje?"
+        subtitle="Pergunta pra sua estilista"
+        icon="sparkles"
         onPress={() => router.push('/lookinhos/estilista')}
-        activeOpacity={0.8}
-        className="flex-row items-center gap-4 rounded-2xl bg-card-light p-4 shadow-soft"
-      >
-        <View className="h-14 w-14 items-center justify-center rounded-full bg-[#ffdbc9]">
-          <Ionicons name="sparkles" size={26} color="#f47b25" />
-        </View>
-        <View className="flex-1">
-          <Text className="text-lg font-bold text-text-light">O que eu visto hoje?</Text>
-          <Text className="text-sm text-text-secondary">Pergunta pra sua estilista</Text>
-        </View>
-        <Ionicons name="chevron-forward" size={22} color="#9E6B47" />
-      </TouchableOpacity>
+      />
+      <GameHubCard
+        title="Looks salvos"
+        subtitle={looks.length ? `${looks.length} look${looks.length > 1 ? 's' : ''} guardadinho${looks.length > 1 ? 's' : ''}` : 'Os looks que você favoritar'}
+        icon="heart"
+        onPress={() => router.push('/lookinhos/salvos')}
+      />
 
       {counts.length > 0 && (
         <ScrollView horizontal showsHorizontalScrollIndicator={false} className="grow-0" contentContainerClassName="items-center gap-2">

@@ -6,8 +6,16 @@ import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import ItemDetailModal from '../../components/lookinhos/ItemDetailModal';
 import LookBoard from '../../components/lookinhos/LookBoard';
-import { StylistMessage, streamStylist, useWardrobeItems } from '../../hooks/wardrobe';
-import { parseStylist } from '../../lib/lookinhos';
+import TryOnView from '../../components/lookinhos/TryOnView';
+import {
+  StylistMessage,
+  streamStylist,
+  useDeleteLook,
+  useSaveLook,
+  useUpdateLook,
+  useWardrobeItems,
+} from '../../hooks/wardrobe';
+import { parseStylist, StylistBlock } from '../../lib/lookinhos';
 import { WardrobeItem } from '../../lib/supabase';
 
 interface Section {
@@ -55,6 +63,62 @@ function AskInput({ placeholder, onSubmit, disabled, big }: {
   );
 }
 
+function LookCard({ block, items, occasion, done, cursor, onPressItem }: {
+  block: Extract<StylistBlock, { type: 'look' }>;
+  items: WardrobeItem[];
+  occasion: string;
+  done: boolean;
+  cursor: string;
+  onPressItem: (i: WardrobeItem) => void;
+}) {
+  const saveLook = useSaveLook();
+  const deleteLook = useDeleteLook();
+  const updateLook = useUpdateLook();
+  const [savedId, setSavedId] = useState<string | null>(null);
+  const [tryonPath, setTryonPath] = useState<string | null>(null);
+
+  const toggleSave = () => {
+    if (savedId) {
+      deleteLook.mutate(savedId, { onSuccess: () => setSavedId(null) });
+    } else {
+      saveLook.mutate(
+        { title: block.title, item_ids: items.map((i) => i.id), why: block.why || null, occasion, tryon_path: tryonPath },
+        { onSuccess: (look) => setSavedId(look.id) },
+      );
+    }
+  };
+
+  const onGenerated = (path: string) => {
+    setTryonPath(path);
+    if (savedId) updateLook.mutate({ id: savedId, tryon_path: path });
+  };
+
+  return (
+    <Animated.View entering={FadeInDown.duration(400)} className="gap-2 rounded-2xl bg-card-light p-4 shadow-soft">
+      <View className="flex-row items-start gap-2">
+        <Text className="flex-1 text-xl font-bold text-text-light">{block.title}</Text>
+        {done && items.length > 0 && (
+          <TouchableOpacity
+            onPress={toggleSave}
+            disabled={saveLook.isPending || deleteLook.isPending}
+            hitSlop={10}
+            accessibilityLabel={savedId ? 'Tirar dos looks salvos' : 'Salvar look'}
+          >
+            <Ionicons name={savedId ? 'heart' : 'heart-outline'} size={26} color="#f47b25" />
+          </TouchableOpacity>
+        )}
+      </View>
+      {items.length > 0 &&
+        (done ? (
+          <TryOnView items={items} onPressItem={onPressItem} onGenerated={onGenerated} />
+        ) : (
+          <LookBoard items={items} onPressItem={onPressItem} />
+        ))}
+      {!!block.why && <Text className="text-base leading-6 text-text-light/80">{block.why}{cursor}</Text>}
+    </Animated.View>
+  );
+}
+
 function Answer({ section, itemsById, onPressItem }: {
   section: Section; itemsById: Map<string, WardrobeItem>; onPressItem: (i: WardrobeItem) => void;
 }) {
@@ -86,13 +150,15 @@ function Answer({ section, itemsById, onPressItem }: {
         // ids que não existem no armário são descartados (anti-alucinação)
         const items = block.ids.map((id) => itemsById.get(id)).filter((x): x is WardrobeItem => !!x);
         return (
-          <Animated.View key={i} entering={FadeInDown.duration(400)} className="gap-2 rounded-2xl bg-card-light p-4 shadow-soft">
-            <Text className="text-xl font-bold text-text-light">{block.title}</Text>
-            {items.length > 0 && <LookBoard items={items} onPressItem={onPressItem} />}
-            {!!block.why && (
-              <Text className="text-base leading-6 text-text-light/80">{block.why}{cursor}</Text>
-            )}
-          </Animated.View>
+          <LookCard
+            key={i}
+            block={block}
+            items={items}
+            occasion={section.question}
+            done={section.done}
+            cursor={cursor}
+            onPressItem={onPressItem}
+          />
         );
       })}
     </View>

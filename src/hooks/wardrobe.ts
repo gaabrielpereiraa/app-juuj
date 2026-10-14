@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { fetch as streamingFetch } from 'expo/fetch';
 import { ImageManipulator, SaveFormat } from 'expo-image-manipulator';
-import { supabase, WardrobeItem } from '../lib/supabase';
+import { SavedLook, supabase, WardrobeItem } from '../lib/supabase';
 
 const WARDROBE_QUERY_KEY = ['wardrobe'];
 const BUCKET = 'wardrobe';
@@ -39,13 +39,17 @@ function startProcessing(id: string, hq = false) {
   });
 }
 
-/** uri = foto vinda do expo-image-picker. Redimensiona, sobe e manda processar. */
-async function addWardrobeItem(uri: string): Promise<WardrobeItem> {
+/** Redimensiona para 1024px de largura (upload rápido, menos tokens na IA) e devolve o JPEG. */
+async function resizeJpeg(uri: string): Promise<ArrayBuffer> {
   const ref = await ImageManipulator.manipulate(uri).resize({ width: 1024 }).renderAsync();
   const resized = await ref.saveAsync({ compress: 0.8, format: SaveFormat.JPEG });
+  return (await fetch(resized.uri)).arrayBuffer();
+}
 
+/** uri = foto vinda do expo-image-picker. Redimensiona, sobe e manda processar. */
+async function addWardrobeItem(uri: string): Promise<WardrobeItem> {
   const rawPath = `raw/${Date.now()}.jpg`;
-  const body = await (await fetch(resized.uri)).arrayBuffer();
+  const body = await resizeJpeg(uri);
   const { error: upError } = await supabase.storage
     .from(BUCKET)
     .upload(rawPath, body, { contentType: 'image/jpeg' });
@@ -151,4 +155,111 @@ export async function streamStylist(
     onText(full);
   }
   return full;
+}
+
+// ---------- Provador ("ver em mim") ----------
+
+const PRIVATE_BUCKET = 'wardrobe-private';
+const MY_PHOTO = 'me.jpg';
+const MY_PHOTO_QUERY_KEY = ['wardrobe', 'myPhoto'];
+
+/** Foto de corpo inteiro dela usada no provador; null se ainda não cadastrou. */
+export function useMyPhoto() {
+  return useQuery({
+    queryKey: MY_PHOTO_QUERY_KEY,
+    queryFn: async () => {
+      const { data, error } = await supabase.storage.from(PRIVATE_BUCKET).list('', { search: MY_PHOTO });
+      if (error) throw error;
+      return data.find((f) => f.name === MY_PHOTO)?.updated_at ?? null;
+    },
+  });
+}
+
+export function useUploadMyPhoto() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (uri: string) => {
+      const { error } = await supabase.storage
+        .from(PRIVATE_BUCKET)
+        .upload(MY_PHOTO, await resizeJpeg(uri), { contentType: 'image/jpeg', upsert: true });
+      if (error) throw error;
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: MY_PHOTO_QUERY_KEY }),
+  });
+}
+
+/** Gera (ou pega do cache) a imagem dela vestindo as peças. Devolve o path no bucket privado. */
+export async function tryOn(itemIds: string[]): Promise<string> {
+  const { data, error } = await supabase.functions.invoke('wardrobe-tryon', { body: { item_ids: itemIds } });
+  if (error) {
+    const body = await error.context?.json?.().catch(() => null);
+    throw new Error(body?.error ?? 'Não consegui gerar a prévia');
+  }
+  return data.path as string;
+}
+
+/** URL assinada (1h) para imagens do bucket privado. */
+export function usePrivateImageUrl(path: string | null) {
+  return useQuery({
+    queryKey: ['wardrobe', 'signed', path],
+    enabled: !!path,
+    staleTime: 1000 * 60 * 50,
+    queryFn: async () => {
+      const { data, error } = await supabase.storage.from(PRIVATE_BUCKET).createSignedUrl(path!, 60 * 60);
+      if (error) throw error;
+      return data.signedUrl;
+    },
+  });
+}
+
+// ---------- Looks salvos ----------
+
+const LOOKS_QUERY_KEY = ['wardrobe', 'looks'];
+
+export function useSavedLooks() {
+  return useQuery({
+    queryKey: LOOKS_QUERY_KEY,
+    queryFn: async (): Promise<SavedLook[]> => {
+      const { data, error } = await supabase
+        .from('wardrobe_looks')
+        .select('*')
+        .order('created_at', { ascending: false });
+      if (error) throw error;
+      return data || [];
+    },
+  });
+}
+
+export function useSaveLook() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (look: Omit<SavedLook, 'id' | 'created_at'>): Promise<SavedLook> => {
+      const { data, error } = await supabase.from('wardrobe_looks').insert(look).select().single();
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: LOOKS_QUERY_KEY }),
+  });
+}
+
+export function useUpdateLook() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, ...changes }: Partial<SavedLook> & { id: string }) => {
+      const { error } = await supabase.from('wardrobe_looks').update(changes).eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: LOOKS_QUERY_KEY }),
+  });
+}
+
+export function useDeleteLook() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from('wardrobe_looks').delete().eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: LOOKS_QUERY_KEY }),
+  });
 }

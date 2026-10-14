@@ -2,23 +2,14 @@
 // Em paralelo: Gemini gera a imagem de catálogo e Claude Haiku reconhece a peça.
 // hq = true → só refaz a imagem com o modelo Pro (botão "refazer em alta qualidade").
 import Anthropic from 'npm:@anthropic-ai/sdk';
-import { decodeBase64, encodeBase64 } from 'jsr:@std/encoding@1/base64';
+import { encodeBase64 } from 'jsr:@std/encoding@1/base64';
+import { generateImage, IMAGE_MODEL, IMAGE_MODEL_HQ } from '../_shared/gemini.ts';
 import { CATEGORIES, cors, db, json } from '../_shared/supabase.ts';
 
-const IMAGE_MODEL = 'gemini-2.5-flash-image';
-const IMAGE_MODEL_HQ = 'gemini-3-pro-image-preview';
 const TAG_MODEL = 'claude-haiku-5-5';
 const DAILY_LIMIT = 60; // ponytail: trava de custo simples, já que a anon key vai no APK
 
 const anthropic = new Anthropic({ apiKey: Deno.env.get('ANTHROPIC_API_KEY')! });
-// Com GOOGLE_CLOUD_PROJECT → Vertex AI (paga com créditos do Google Cloud); sem ele → AI Studio (pré-pago).
-// Mesmo corpo de request/response nos dois.
-const GCP_PROJECT = Deno.env.get('GOOGLE_CLOUD_PROJECT');
-const GEMINI_KEY = Deno.env.get('GEMINI_API_KEY')!;
-const geminiUrl = (model: string) =>
-  GCP_PROJECT
-    ? `https://aiplatform.googleapis.com/v1/projects/${GCP_PROJECT}/locations/global/publishers/google/models/${model}:generateContent?key=${GEMINI_KEY}`
-    : `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${GEMINI_KEY}`;
 
 const IMAGE_PROMPT = `Product photo for an online clothing catalog.
 Take the garment from this photo and show it alone, front-facing, flat and wrinkle-free, centered,
@@ -41,22 +32,6 @@ const TAG_SCHEMA = {
     description: { type: 'string', description: 'Uma frase rica: modelagem, comprimento, decote, detalhes' },
   },
 };
-
-async function generateImage(photo: string, model: string): Promise<Uint8Array> {
-  const res = await fetch(geminiUrl(model), {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      contents: [{ role: 'user', parts: [{ inlineData: { mimeType: 'image/jpeg', data: photo } }, { text: IMAGE_PROMPT }] }],
-      generationConfig: { responseModalities: ['TEXT', 'IMAGE'] },
-    }),
-  });
-  if (!res.ok) throw new Error(`Gemini ${res.status}: ${(await res.text()).slice(0, 300)}`);
-  const body = await res.json();
-  const part = body.candidates?.[0]?.content?.parts?.find((p: { inlineData?: { data?: string } }) => p.inlineData?.data);
-  if (!part) throw new Error('Gemini não retornou imagem');
-  return decodeBase64(part.inlineData.data);
-}
 
 async function tagGarment(photo: string) {
   const res = await anthropic.messages.create({
@@ -98,7 +73,7 @@ Deno.serve(async (req) => {
     const photo = encodeBase64(new Uint8Array(await file.arrayBuffer()));
 
     const [image, tags] = await Promise.all([
-      generateImage(photo, hq ? IMAGE_MODEL_HQ : IMAGE_MODEL),
+      generateImage([{ mimeType: 'image/jpeg', data: photo }], IMAGE_PROMPT, hq ? IMAGE_MODEL_HQ : IMAGE_MODEL),
       hq && item.category ? null : tagGarment(photo), // refazer só a imagem se já tem tags
     ]);
 

@@ -9,7 +9,7 @@ interface AddItemSheetProps {
   onClose: () => void;
 }
 
-function Option({ icon, title, subtitle, onPress }: {
+export function SheetOption({ icon, title, subtitle, onPress }: {
   icon: keyof typeof Ionicons.glyphMap; title: string; subtitle: string; onPress: () => void;
 }) {
   return (
@@ -59,8 +59,8 @@ export default function AddItemSheet({ visible, onClose }: AddItemSheetProps) {
     <DraggableModal visible={visible} onClose={onClose}>
       <View className="gap-3 px-6 pb-4">
         <Text className="mb-1 text-center text-lg font-bold text-text-light">Nova peça</Text>
-        <Option icon="camera" title="Tirar foto" subtitle="Pode ser na cama, no cabide, do jeito que der" onPress={fromCamera} />
-        <Option icon="images" title="Escolher da galeria" subtitle="Dá pra escolher várias de uma vez" onPress={fromGallery} />
+        <SheetOption icon="camera" title="Tirar foto" subtitle="Pode ser na cama, no cabide, do jeito que der" onPress={fromCamera} />
+        <SheetOption icon="images" title="Escolher da galeria" subtitle="Dá pra escolher várias de uma vez" onPress={fromGallery} />
       </View>
     </DraggableModal>
   );
