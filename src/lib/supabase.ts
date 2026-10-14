@@ -110,14 +110,3 @@ export interface WardrobeItem {
     error: string | null;
     created_at: string;
 }
-
-export interface StylistLook {
-    title: string;
-    item_ids: string[];
-    why: string;
-}
-
-export interface StylistReply {
-    message: string;
-    looks: StylistLook[];
-}

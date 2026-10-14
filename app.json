@@ -37,6 +37,15 @@
       "eas": {
         "projectId": "df285a5f-1a44-428e-afbc-aa30a9957897"
       }
-    }
+    },
+    "plugins": [
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "O app usa suas fotos para cadastrar roupas no armário.",
+          "cameraPermission": "O app usa a câmera para fotografar suas roupas."
+        }
+      ]
+    ]
   }
 }

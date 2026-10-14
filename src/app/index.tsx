@@ -27,6 +27,7 @@ export default function HomeScreen() {
     { titulo: 'Histórico de Compras', icone: 'cart-outline', redirectTo: '/historico-compras' },
     { titulo: 'Calendário de Hábitos', icone: 'calendar-outline', redirectTo: '/calendario' },
     { titulo: 'Joguinhos', icone: 'game-controller-outline', redirectTo: '/joguinhos' },
+    { titulo: 'Lookinhos', icone: 'shirt-outline', redirectTo: '/lookinhos' },
   ];
 
   if (loading) {
