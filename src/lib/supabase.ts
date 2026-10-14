@@ -86,3 +86,38 @@ export interface GameSession {
     points_awarded: number;
     created_at: string;
 }
+export const WARDROBE_CATEGORIES = [
+    'blusas', 'tube_tops', 'regatas', 'camisetas', 'camisas', 'calcas', 'shorts', 'saias',
+    'vestidos', 'macacoes', 'casacos', 'calcados', 'bolsas', 'acessorios',
+] as const;
+
+export type WardrobeCategory = typeof WARDROBE_CATEGORIES[number];
+
+export interface WardrobeItem {
+    id: string;
+    status: 'processing' | 'ready' | 'error';
+    raw_path: string;
+    image_path: string | null;
+    category: WardrobeCategory | null;
+    name: string | null;
+    colors: string[] | null;
+    pattern: string | null;
+    material: string | null;
+    formality: number | null;
+    seasons: string[] | null;
+    occasions: string[] | null;
+    description: string | null;
+    error: string | null;
+    created_at: string;
+}
+
+export interface StylistLook {
+    title: string;
+    item_ids: string[];
+    why: string;
+}
+
+export interface StylistReply {
+    message: string;
+    looks: StylistLook[];
+}
