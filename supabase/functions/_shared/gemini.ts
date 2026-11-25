@@ -17,7 +17,18 @@ export type InlineImage = { mimeType: string; data: string }; // data em base64
 
 /** Manda as imagens (na ordem) + o prompt e devolve a imagem gerada. */
 export async function generateImage(images: InlineImage[], prompt: string, model = IMAGE_MODEL): Promise<Uint8Array> {
-  const res = await fetch(geminiUrl(model), {
+  let res = await callGemini(model, images, prompt);
+  // Vertex só libera os "-preview" para projetos na allowlist (404); o ID GA sem sufixo costuma estar aberto
+  if (res.status === 404 && model.endsWith('-preview')) res = await callGemini(model.replace(/-preview$/, ''), images, prompt);
+  if (!res.ok) throw new Error(`Gemini ${res.status}: ${(await res.text()).slice(0, 300)}`);
+  const body = await res.json();
+  const part = body.candidates?.[0]?.content?.parts?.find((p: { inlineData?: { data?: string } }) => p.inlineData?.data);
+  if (!part) throw new Error('Gemini não retornou imagem');
+  return decodeBase64(part.inlineData.data);
+}
+
+function callGemini(model: string, images: InlineImage[], prompt: string) {
+  return fetch(geminiUrl(model), {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
@@ -25,9 +36,4 @@ export async function generateImage(images: InlineImage[], prompt: string, model
       generationConfig: { responseModalities: ['TEXT', 'IMAGE'] },
     }),
   });
-  if (!res.ok) throw new Error(`Gemini ${res.status}: ${(await res.text()).slice(0, 300)}`);
-  const body = await res.json();
-  const part = body.candidates?.[0]?.content?.parts?.find((p: { inlineData?: { data?: string } }) => p.inlineData?.data);
-  if (!part) throw new Error('Gemini não retornou imagem');
-  return decodeBase64(part.inlineData.data);
 }

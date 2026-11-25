@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { fetch as streamingFetch } from 'expo/fetch';
 import { ImageManipulator, SaveFormat } from 'expo-image-manipulator';
-import { SavedLook, supabase, WardrobeItem } from '../lib/supabase';
+import { SavedLook, supabase, WardrobeCategory, WardrobeItem } from '../lib/supabase';
 
 const WARDROBE_QUERY_KEY = ['wardrobe'];
 const BUCKET = 'wardrobe';
@@ -33,8 +33,8 @@ export function useWardrobeItems() {
 }
 
 // Dispara a IA sem esperar: a peça aparece como 'processing' e o polling acima pega o resultado.
-function startProcessing(id: string, hq = false) {
-  supabase.functions.invoke('wardrobe-process', { body: { id, hq } }).catch(() => {
+function startProcessing(id: string, hq = false, pick?: WardrobeCategory) {
+  supabase.functions.invoke('wardrobe-process', { body: { id, hq, pick } }).catch(() => {
     // a própria function marca status 'error' na linha; nada a fazer aqui
   });
 }
@@ -100,13 +100,14 @@ export function useUpdateWardrobeItem() {
   });
 }
 
-/** "Tentar de novo" (hq = false) ou "refazer em alta qualidade" (hq = true, modelo Pro). */
+/** "Tentar de novo" (hq = false), "refazer em alta qualidade" (hq = true, modelo Pro)
+ *  ou "pegou a peça errada" (pick = categoria certa; refaz tags e imagem focando nela). */
 export function useReprocessWardrobeItem() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async ({ id, hq }: { id: string; hq: boolean }) => {
+    mutationFn: async ({ id, hq, pick }: { id: string; hq: boolean; pick?: WardrobeCategory }) => {
       await updateWardrobeItem({ id, status: 'processing', error: null });
-      startProcessing(id, hq);
+      startProcessing(id, hq, pick);
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: WARDROBE_QUERY_KEY }),
   });

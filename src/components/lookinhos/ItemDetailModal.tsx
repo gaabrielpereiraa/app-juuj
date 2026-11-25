@@ -8,7 +8,7 @@ import {
   wardrobeImageUrl,
 } from '../../hooks/wardrobe';
 import { CATEGORY_LABEL } from '../../lib/lookinhos';
-import { WARDROBE_CATEGORIES, WardrobeItem } from '../../lib/supabase';
+import { WARDROBE_CATEGORIES, WardrobeCategory, WardrobeItem } from '../../lib/supabase';
 import DraggableModal from '../DraggableModal';
 
 const FORMALITY = ['Casa', 'Casual', 'Arrumada', 'Chique', 'Gala'];
@@ -46,6 +46,7 @@ export default function ItemDetailModal({ item, onClose }: ItemDetailModalProps)
   // estado zera sozinho ao trocar de peça: os pais renderizam com key={item.id}
   const [showOriginal, setShowOriginal] = useState(false);
   const [name, setName] = useState(item?.name ?? '');
+  const [picking, setPicking] = useState(false);
 
   if (!item) return <DraggableModal visible={false} onClose={onClose}>{null}</DraggableModal>;
 
@@ -54,8 +55,8 @@ export default function ItemDetailModal({ item, onClose }: ItemDetailModalProps)
   const shownPath = showOriginal || !item.image_path ? item.raw_path : item.image_path;
   const save = (changes: Partial<WardrobeItem>) => update.mutate({ id: item.id, ...changes });
 
-  const retry = (hq: boolean) => {
-    reprocess.mutate({ id: item.id, hq });
+  const retry = (hq: boolean, pick?: WardrobeCategory) => {
+    reprocess.mutate({ id: item.id, hq, pick });
     onClose();
   };
 
@@ -181,6 +182,24 @@ export default function ItemDetailModal({ item, onClose }: ItemDetailModalProps)
             </TouchableOpacity>
           )}
         </View>
+
+        {/* foto com a pessoa vestida pode ter várias peças: deixa escolher qual a IA deveria ter pegado */}
+        {!processing && (picking ? (
+          <View className="gap-2 rounded-2xl bg-card-light p-3 shadow-soft">
+            <Text className="text-sm font-bold text-text-secondary">Qual peça era pra pegar?</Text>
+            <View className="flex-row flex-wrap gap-2">
+              {WARDROBE_CATEGORIES.map((cat) => (
+                <TouchableOpacity key={cat} onPress={() => retry(false, cat)} className="rounded-full bg-background-light px-3 py-1.5">
+                  <Text className="text-sm font-bold text-text-secondary">{CATEGORY_LABEL[cat]}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+        ) : (
+          <TouchableOpacity onPress={() => setPicking(true)} className="items-center py-1">
+            <Text className="text-sm font-bold text-text-secondary underline">Pegou a peça errada?</Text>
+          </TouchableOpacity>
+        ))}
 
         <TouchableOpacity onPress={confirmDelete} className="items-center py-2">
           <Text className="text-sm font-bold text-red-500/80">Apagar peça</Text>
