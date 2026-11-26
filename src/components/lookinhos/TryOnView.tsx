@@ -6,6 +6,7 @@ import { ActivityIndicator, Alert, Text, TouchableOpacity, View } from 'react-na
 import { tryOn, useMyPhoto, usePrivateImageUrl, useUploadMyPhoto } from '../../hooks/wardrobe';
 import { WardrobeItem } from '../../lib/supabase';
 import DraggableModal from '../DraggableModal';
+import PhotoPreviewModal from '../PhotoPreviewModal';
 import { SheetOption } from './AddItemSheet';
 import LookBoard from './LookBoard';
 
@@ -56,6 +57,7 @@ export default function TryOnView({ items, onPressItem, tryonPath = null, onGene
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [photoSheet, setPhotoSheet] = useState(false);
+  const [expanded, setExpanded] = useState(false);
   const { data: myPhoto } = useMyPhoto();
   const uploadPhoto = useUploadMyPhoto();
   const { data: imageUrl } = usePrivateImageUrl(showMe ? path : null);
@@ -111,12 +113,15 @@ export default function TryOnView({ items, onPressItem, tryonPath = null, onGene
               <Text className="text-center text-sm text-text-secondary">vestindo você… uns 20 segundinhos ✨</Text>
             </View>
           ) : (
-            <>
+            <TouchableOpacity activeOpacity={0.9} onPress={() => setExpanded(true)} className="h-full w-full">
               <Image source={{ uri: imageUrl }} style={{ width: '100%', height: '100%' }} contentFit="cover" transition={300} />
               <View className="absolute left-3 top-3 rounded-full bg-black/40 px-2 py-0.5">
                 <Text className="text-xs font-bold text-white">prévia</Text>
               </View>
-            </>
+              <View className="absolute bottom-3 right-3 rounded-full bg-black/40 p-1.5">
+                <Ionicons name="expand" size={16} color="#ffffff" />
+              </View>
+            </TouchableOpacity>
           )}
         </View>
       ) : (
@@ -140,6 +145,7 @@ export default function TryOnView({ items, onPressItem, tryonPath = null, onGene
         </TouchableOpacity>
       )}
 
+      <PhotoPreviewModal uri={expanded ? imageUrl ?? null : null} onClose={() => setExpanded(false)} />
       <MyPhotoSheet visible={photoSheet} onClose={() => setPhotoSheet(false)} onPicked={onPhotoPicked} />
     </View>
   );

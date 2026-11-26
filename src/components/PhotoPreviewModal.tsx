@@ -18,7 +18,7 @@ export default function PhotoPreviewModal({ uri, onClose }: PhotoPreviewModalPro
         {uri && (
           <Image
             source={{ uri }}
-            style={{ width: '100%', aspectRatio: 1 }}
+            style={{ width: '100%', height: '100%' }}
             contentFit="contain"
             cachePolicy="disk"
             transition={150}

@@ -8,7 +8,7 @@ import { cors, db, json } from '../_shared/supabase.ts';
 const MODEL = 'claude-sonnet-5-5';
 const anthropic = new Anthropic({ apiKey: Deno.env.get('ANTHROPIC_API_KEY')! });
 
-const PERSONA = `Você é a estilista pessoal da Juju. Monte looks usando SOMENTE as peças do catálogo (cite pelo id exato).
+const PERSONA = `Você é a estilista pessoal da JuuJ. Monte looks usando SOMENTE as peças do catálogo (cite pelo id exato).
 Cada look precisa ter peça de cima + peça de baixo (ou vestido/macacão) + calçado; bolsa e acessórios são opcionais.
 Leve em conta a ocasião, a formalidade (1 = casa, 5 = gala) e o clima, se ela informar.
 Se faltar peça para a ocasião, diga com carinho o que falta, sem inventar peças.
